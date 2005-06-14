@@ -12,7 +12,35 @@
 #include <string>
 #include "mmant.h"
 
-// Clase de sockets
+// Brief Protocol Description
+// '0x01' <<-- Version of Mmant Protocol
+// int signed <<-- length of command
+// buffer command <<-- Command
+// int signed <<-- length of data (if any)
+// buffer data <<<-- Data (if any)
+// EOF. <<-- 
+
+
+// Client commands &
+// Parameters
+// AUTH		<<<--- Rudimentary PASSWORD
+// password
+// SENDONE	<<<--- Send one file
+// path file
+// SENDMUL	<<<--- Send multiple files
+// path of files
+// KILLDAEMON	<<<--- Kill main daemon
+// VERSION	<<<--- Version of Mmant
+// CLEANCAMALL	<<<--- Remove all data of 1 cam
+// cam number
+// MRPROPER	<<<--- Remove ALL data of ALL cams.
+// cam number
+// REMOVEONE	<<<--- Remove one file
+// path of file
+// FREESPACE	<<<--- Space free of directory.
+// directory
+
+#define Mmant_PROTOCOL_VERSION	0x01
 
 using namespace std;
 class CSock {
@@ -39,14 +67,13 @@ class CSockClient:public CSock {
 
 public:
 	int Connect();
-	int Recv(int s, char *msg);
-	int Send(int s, char *msg);
-	int RecvHeader(int s, int *i);
-	int MiniRecv(int s, char **msg, int len);	
+	int Recv(char *msg);
+	int Send(char *msg);
+	int RecvHeader(int *i);
+	int MiniRecv(char **msg, int len);	
 private:	
-	int SendHeader(int s, int *msg);
-
-	int MiniSend(int s, char *msg);
+	int SendMsgLen(int *msg);
+	int MiniSend(char *msg);
 	
 };
 
@@ -64,10 +91,12 @@ public:
 	int AttachMmant(Mmant *z);
 
 private:
-	CSock client;
+	CSockClient client;
 	// Server
 	int Bind();
 	int Listen(int backlog=10);
+	// MAIN FUNCTION OF SERVER
+	static void * HeartServer(void *p_m);
 
 };
 #endif

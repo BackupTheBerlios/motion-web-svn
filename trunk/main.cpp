@@ -35,10 +35,10 @@ char *files[] = {
 o_sock.SetAddr(6969, "127.0.0.1");
 o_sock.InitSocket();
 o_sock.Connect();
-o_sock.Send(o_sock.sock_fd, "COMMAND TEST 1");
-if ( ( o_sock.Send(o_sock.sock_fd, "DELETE") ) != 0)
+o_sock.Send("COMMAND TEST 1");
+if ( ( o_sock.Send("DELETE") ) != 0)
 	cout << "Error sending DELETE\n" << endl;
-o_sock.Send(o_sock.sock_fd, "END");
+o_sock.Send("END");
 #endif
 
 #ifndef CLIENT // Modo SERVIDOR
