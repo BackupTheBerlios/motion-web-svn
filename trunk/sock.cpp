@@ -70,16 +70,18 @@ int CSockClient::Send(char *msg) {
 	protovers = htons(Mmant_PROTOCOL_VERSION);
 	len = strlen(msg);
 	len = htons(len);
+	// We send the protocol version
 	i_send = send(sock_fd, &protovers, sizeof(int), 0);
 	if (i_send == -1)
 		cerr << "CSockClient error: I cant't send header!!" << endl;
+	// We send the length of command
 	if ( SendMsgLen(&len) == -1 ) {
 		cerr << "CSockClient error: I can't send header" << endl;
 		exit (-1);
 	}
-	
+	// We send the message
 	if ( MiniSend(msg) == -1 ) {
-		cerr << "CSockClient error: I can't send data" << endl;
+		cerr << "CSockClient error: I can't send command" << endl;
 		exit (-1);
 	}
 	return 0;
@@ -143,7 +145,7 @@ int CSockServer::InitServer() {
 	Bind();
 	Listen();
 	pthread_t p_socket;
-	CSockServer *cs_ptr = this;
+	CSockClient *ptr_CSock;
 //	cs_ptr = this;
 
 	while (1) {
@@ -152,7 +154,12 @@ int CSockServer::InitServer() {
 			perror("accept");
 			continue;
 		}
-//		cs_ptr = &client;
+		ptr_CSock = new CSockClient();
+		if ( ptr_CSock == NULL)
+			cerr << "FATAL ERROR" << endl;
+		ptr_CSock->sock_fd = client.sock_fd;
+		ptr_CSock->inet = client.inet;
+		ptr_CSock->protocol = client.protocol;
 		time(&now);
 		cout << "Got connection from " << inet_ntoa(client.inet.sin_addr) << " at " << ctime(&now); 
 
@@ -164,9 +171,9 @@ int CSockServer::InitServer() {
 			int a,x;
 			char *msg=NULL;
 			do {
-				x = client.RecvHeader(&a);
+				x = client->RecvHeader(&a);
 				cout << "Recibido header: " << a << endl;
-				x = client.MiniRecv(&msg, a);
+				x = client->MiniRecv(&msg, a);
 				if (x == -1)
 					cout << "Error el recibir los datos" << endl;
 				cout << "Mensaje: " << msg << endl;
@@ -176,23 +183,24 @@ int CSockServer::InitServer() {
 		}
 #endif
 #ifdef WITH_PTHREAD
-		if ( (pthread_create(&p_socket,NULL,HeartServer,cs_ptr)) == -1 ) {
+		cout << "Creating thread" << endl;
+		if ( (pthread_create(&p_socket,NULL,HearthServer,ptr_CSock)) == -1 ) {
 			cerr << "ERROR: I can't create server process" << endl;
 			exit(1);
 		}
 #endif
-		close(client.sock_fd);
+//		close(client.sock_fd);
 	}
 	return 0;
 }
 
-void * CSockServer::HeartServer(void *ps){
-	CSockServer *p_this = (CSockServer *)ps;
+void * CSockServer::HearthServer(void *ps){
 	cout << "Thread hijo iniciado\n" << endl;
+	CSockClient *ptr_CSock = (CSockClient *)ps;
 	int a,x;
 	char *msg=NULL;
 //	do {
-		if ( p_this->client.RecvHeader(&a) == -1 )
+		if ( ptr_CSock->RecvHeader(&a) == -1 )
 			cout << "CSockServer ERROR: RecvHeader" << endl;
 		else
 			cout << "Recibido head: " << a << endl;

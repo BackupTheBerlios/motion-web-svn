@@ -74,6 +74,11 @@ public:
 private:	
 	int SendMsgLen(int *msg);
 	int MiniSend(char *msg);
+	int RecvHPRotocolVersion(int *protocol);
+	int RecvHLengthCommand(int *length);
+	int RecvHCommand(char *msg);
+	int RecvLengthData(int *length);
+	int RecvData(char *msg);
 	
 };
 
@@ -91,12 +96,12 @@ public:
 	int AttachMmant(Mmant *z);
 
 private:
-	CSockClient client;
+	CSock client;
 	// Server
 	int Bind();
 	int Listen(int backlog=10);
 	// MAIN FUNCTION OF SERVER
-	static void * HeartServer(void *p_m);
+	static void * HearthServer(void *p_m);
 
 };
 #endif
