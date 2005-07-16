@@ -10,7 +10,7 @@ client: mmant.cpp main.cpp sock.cpp
 	g++ -g -DCLIENT  mmant.cpp main.cpp sock.cpp -o client -lmysqlcppapi-1.9 -pthread
 	
 servidor: mmant.cpp main.cpp sock.cpp
-	g++ -g -DWITH_PTHREAD mmant.cpp main.cpp sock.cpp -o servidor -lmysqlcppapi-1.9 -pthread	
+	g++ -g -DWITH_PTHREAD -DDEBUG mmant.cpp main.cpp sock.cpp -o servidor -lmysqlcppapi-1.9 -pthread	
 
 clean:
 	rm -f mmant

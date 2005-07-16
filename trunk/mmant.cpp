@@ -36,6 +36,7 @@ int Mmant::SetQuery(string s, string f) {
 	q_where_count = f;
 	personalized_query = true;
 	DeleteDone = false;
+	LOCK = false;
 }
 
 void Mmant::SetEraseAll(int cam) {
@@ -54,7 +55,7 @@ int Mmant::SetFiles(char **files, int size) {
     file = files[i];
     m_files.push_back(file);
     m_fstatus.push_back(0);
-		m_dbstatus.push_back(0);
+    m_dbstatus.push_back(0);
   }
   return 1;
 }
@@ -102,6 +103,7 @@ void Mmant::SetFilesFromDB(int cam) {
 
 void * Mmant::DFilesThread (void *aa) {
 	Mmant *zz = (Mmant *)aa;
+	zz->LOCK = true;
 //	int f_total,tmp_files=0;
 //	float yo;
 	zz->f_total = zz->GetNumberFiles(zz->EraseAll);
@@ -121,11 +123,12 @@ void * Mmant::DFilesThread (void *aa) {
 //			cout << m_percent << "%" << " Ahora: " << tmp_files << endl;
 	} while ( zz->tmp_files != 0 && zz->DeleteDone == false);
 	zz->DeleteDone = true;
+	zz->LOCK = false;
 	pthread_exit(NULL);
 }
 
 int Mmant::DeleteFiles() {
-	if (EraseAll != -1) {
+	if (EraseAll != -1 && LOCK == false) {
 		pthread_t idThread;
 		int err;
 		Mmant *ptr = this;

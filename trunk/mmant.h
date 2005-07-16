@@ -8,18 +8,19 @@ using namespace std;
 class Mmant {
 // Public stuff
 public:
-    // Fields
-    // Constructors
-    // Empty Constructor
-    bool del_force;
-    Mmant ();
+	// Constructors
+	// Empty Constructor
+    	bool del_force;
+	bool LOCK;	// Flag looking jobs
+	
+	Mmant ();
 	// Se le pasa un array con los archivos.
-    int SetFiles(char **files, int size);
+	int SetFiles(char **files, int size);
 	// Activamos el modo de eliminación de todos los datos de una cámara.
 	void SetEraseAll(int cam);
-    int  OpenDB (const string& host, const string& user, const string& password, const string& database, int port=3306);
-    // Borra archivos del disco duro y base de datos.
-    int DeleteFiles ();
+	int OpenDB (const string& host, const string& user, const string& password, const string& database, int port=3306);
+	// Borra archivos del disco duro y base de datos.
+	int DeleteFiles ();
 	int SetQuery(string s, string f);   
 	// Signal Catcher
 	void DeleteStop(int);
@@ -36,18 +37,18 @@ private:
     // Fields
     // DB Object
     Connection db;
-	
-    // Flags
-    bool personalized_query;
-    int EraseAll; //Flag y número de cámara.
+
+	// Flags
+	bool personalized_query;
+	int EraseAll; //Flag y número de cámara.
 	bool DeleteDone; // Flag que indica al padre que la eliminación se ha terminado
-    // Dinamic matrix
-    string q_where; // Después del where cam='1'.... Recordar poner el limit 1000
-    string q_where_count; // String para el count(*) después del where tb;	
-    vector<string> m_files;
-    vector<int> m_fstatus;
-    vector<int> m_dbstatus;
-    int m_size;    // Size of vector with files.
+	// Dinamic matrix
+	string q_where; // Después del where cam='1'.... Recordar poner el limit 1000
+	string q_where_count; // String para el count(*) después del where tb;	
+	vector<string> m_files;
+	vector<int> m_fstatus;
+	vector<int> m_dbstatus;
+	int m_size;    // Size of vector with files.
 	
 	//Inside DFilesThread
 	float m_percent, f_total, tmp_files; // Tanto por ciento realizado.

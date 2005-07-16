@@ -10,10 +10,11 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <string>
+#include <poll.h>
 #include "mmant.h"
 
 // Brief Protocol Description
-// '0x01' <<-- Version of Mmant Protocol
+// '0x01' <<-- Version of Mmant Protocol (Server IMPAR - client - PAR);
 // int signed <<-- length of command
 // buffer command <<-- Command
 // int signed <<-- length of data (if any)
@@ -39,8 +40,10 @@
 // path of file
 // FREESPACE	<<<--- Space free of directory.
 // directory
+// LIST		<<<--- List current jobs
 
-#define Mmant_PROTOCOL_VERSION	0x01
+#define Mmant_PROTOCOL_VERSION	0x0A
+#define TIMEOUT_RECV 10000
 
 using namespace std;
 class CSock {
@@ -69,16 +72,20 @@ public:
 	int Connect();
 	int Recv(char *msg);
 	int Send(char *msg);
-	int RecvHeader(int *i);
-	int MiniRecv(char **msg, int len);	
-private:	
-	int SendMsgLen(int *msg);
-	int MiniSend(char *msg);
+	int Read(char **cmd);
+private:
+	int SendHProtocolVersion();
+	int SendHMsgLen(char *msg);
+	int SendCommand(char *cmd);
 	int RecvHPRotocolVersion(int *protocol);
 	int RecvHLengthCommand(int *length);
-	int RecvHCommand(char *msg);
+	int RecvHCommand(char **msg, int len);
 	int RecvLengthData(int *length);
-	int RecvData(char *msg);
+	int RecvData(char **msg, int len);
+	int RecvHeader(int *i);
+	int MiniRecv(char **msg, int len);	
+	int MiniSend(char *msg);
+
 	
 };
 
@@ -94,14 +101,19 @@ public:
 	// Después se podrían consultar, eliminar, etc.
 	Mmant *mmant;
 	int AttachMmant(Mmant *z);
+	int ProcessCommand(char **cmd);	
 
 private:
+	CSockServer* parent;	//Pointer to CsockServer base
 	CSock client;
+	vector<string> ActiveJobsList;
 	// Server
 	int Bind();
 	int Listen(int backlog=10);
 	// MAIN FUNCTION OF SERVER
 	static void * HearthServer(void *p_m);
+	int CheckActiveCommand(string cmd);
+	int CleanActiveCommandList(string *list);
 
 };
 #endif

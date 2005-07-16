@@ -43,9 +43,15 @@ int CSockClient::Connect() {
 	} 
 }
 
-int CSockClient::SendMsgLen(int *msg) {
-	int n;
-	n = send(sock_fd, msg, sizeof(int), 0);
+int CSockClient::SendHMsgLen(char *msg) {
+	int n,len;
+	len = strlen(msg);
+	len = htons (len);
+	n = send(sock_fd, &len, sizeof(int), 0);
+#ifdef DEBUG
+	cout << "Sending Header: MSG LEN: " << strlen(msg) << endl;
+	perror("send");
+#endif
 	return n == -1?-1:0;	
 }
 
@@ -64,52 +70,174 @@ int CSockClient::MiniSend(char *msg) {
 	return n == -1?-1:0;
 }
 
+int CSockClient::SendHProtocolVersion() {
+	int n;
+#ifdef DEBUG
+	cout << "Sending Header: PROTOCOL_VERSION: " << Mmant_PROTOCOL_VERSION << endl;
+#endif
+	protocol = htons(Mmant_PROTOCOL_VERSION);
+	n = send(sock_fd, &protocol, sizeof(int), 0);
+#ifdef DEBUG
+	perror("send");
+#endif
+	return n == -1?-1:0;
+}
+
 
 int CSockClient::Send(char *msg) {
-	int len,protovers,i_send;
-	protovers = htons(Mmant_PROTOCOL_VERSION);
-	len = strlen(msg);
-	len = htons(len);
+	int i_send;
 	// We send the protocol version
-	i_send = send(sock_fd, &protovers, sizeof(int), 0);
-	if (i_send == -1)
-		cerr << "CSockClient error: I cant't send header!!" << endl;
+	i_send = SendHProtocolVersion();
+	if (i_send == -1) {
+		cerr << "CSockClient error: I cant't send protocol version!!" << endl;
+		return -1;
+	}
 	// We send the length of command
-	if ( SendMsgLen(&len) == -1 ) {
+	if ( SendHMsgLen(msg) == -1 ) {
 		cerr << "CSockClient error: I can't send header" << endl;
-		exit (-1);
+		return -1;
 	}
 	// We send the message
 	if ( MiniSend(msg) == -1 ) {
 		cerr << "CSockClient error: I can't send command" << endl;
-		exit (-1);
+		return -1;
 	}
 	return 0;
 }
 
+int CSockClient::RecvHPRotocolVersion(int *protocol) {
+	int stat;
+	struct pollfd my_pfds[1];
+	my_pfds[0].fd = sock_fd;
+	my_pfds[0].events = POLLIN;
+	if (poll(my_pfds, 1, TIMEOUT_RECV) == 1) {
+		stat = recv(sock_fd, protocol, sizeof(int), 0);
+#ifdef DEBUG
+		perror("recv");
+#endif
+		*protocol = ntohs(*protocol);
+		return stat == 0?-1:0;
+	}
+#ifdef DEBUG
+	else
+		cout << "RecvHPRotocolVersion: TIMEOUT_RECV ERROR" << endl;
+#endif
+	return -1;
+}
+
+int CSockClient::RecvHLengthCommand(int *length) {
+	int stat;
+	stat = recv(sock_fd, length, sizeof(int), 0);
+#ifdef DEBUG
+	perror("recv");
+#endif
+	*length = ntohs(*length);
+	return stat;
+}
+
+int CSockClient::RecvHCommand(char **msg, int len) {
+	return MiniRecv(msg, len);
+}
+
+int CSockClient::RecvLengthData(int *length) {
+
+}
+
+int CSockClient::RecvData(char **msg, int len) {
+
+}
+
 int CSockClient::RecvHeader(int *i) {
 	int stat;
-	stat = recv(sock_fd, i, sizeof(int), 0);
-perror("recv");
-	*i = ntohs(*i);
-	return stat;
+	struct pollfd my_pfds[1];
+	my_pfds[0].fd = sock_fd;
+	my_pfds[0].events = POLLIN;
+	if (poll(my_pfds, 1, 10) == 1) {
+		stat = recv(sock_fd, i, sizeof(int), 0);
+		perror("recv");
+		*i = ntohs(*i);
+		return stat;
+	}
+	return -1;
 }
 
 int CSockClient::MiniRecv(char **msg, int len) {
 	int total = 0;
+	int i = 0;
 	char *ptr;
-	*msg = (char *)malloc(len);
+	*msg = (char *)malloc(len+1);
 	int bytesleft = len;
 	int n;
+	struct pollfd my_pfds[1];
+	my_pfds[0].fd = sock_fd;
+	my_pfds[0].events = POLLIN;
 	while ( total < len  ) {
-		n = recv(sock_fd, *msg+total, bytesleft, 0);
-		if (n == -1) { break; }
-		total += n;
-		bytesleft -= n;
+#ifdef DEBUG
+		cout << "1Total: " << total << " len: " << len << endl;
+#endif
+		if (poll(my_pfds, 1, TIMEOUT_RECV) == 1) {
+			n = recv(sock_fd, *msg+total, bytesleft, 0);
+			if (n == -1) { break; }
+			total += n;
+			bytesleft -= n;
+#ifdef DEBUG
+			cout << "2Total: " << total << " len: " << len << endl;
+			perror("recv");
+#endif
+			i++;
+		} else {
+		break;
+		}
+			if (i>9)
+				break;
 	}
 	ptr = *msg+len;
 	*ptr = '\0';
 	return n == -1?-1:0;
+}
+
+
+int CSockClient::Read(char **cmd) {
+	int protocol,l_command;
+	if ( RecvHPRotocolVersion(&protocol) == -1 ) {
+#ifdef DEBUG
+		cout << "CSockServer ERROR: RecvProtocol" << endl;
+#endif
+		return -1;
+	}
+#ifdef DEBUG
+	else
+		cout << "Recibido protocol: " << protocol << endl;
+#endif
+	if ( protocol != PROTOCOL_VERSION ) {
+#ifdef DEBUG
+		cerr << "Packet discarded. Protocol not matching!!" << endl;
+//		RecvHPRotocolVersion(&protocol);	// Workaround for "sucksets" PHP
+#endif
+//		return -1;
+	}
+	if ( (RecvHLengthCommand(&l_command) == -1) || l_command == 0) {
+#ifdef DEBUG
+		cerr << "CSockServer ERROR: RecvHLengthCommand" << endl;
+#endif
+		return -1;
+	}
+#ifdef DEBUG
+	else
+		cout << "Recibido length Header: " << l_command << endl;
+#endif
+	if ( RecvHCommand(cmd, l_command) == -1 ) {
+#ifdef DEBUG
+		cout << "CSockServer ERROR: RecvHCommand" << endl;
+#endif
+		return -1;
+	}
+#ifdef DEBUG
+	else
+		cout << "Recibido comando: " << *cmd << endl;
+#endif
+return 0;
+
 }
 
 
@@ -139,14 +267,14 @@ int CSockServer::AttachMmant(Mmant *z) {
 	mmant=z;
 }
 
+
 int CSockServer::InitServer() {
 	socklen_t sin_size;
 	time_t	now;
 	Bind();
 	Listen();
 	pthread_t p_socket;
-	CSockClient *ptr_CSock;
-//	cs_ptr = this;
+	CSockServer *ptr_CSock;
 
 	while (1) {
 		sin_size = sizeof(struct sockaddr_in);
@@ -154,12 +282,13 @@ int CSockServer::InitServer() {
 			perror("accept");
 			continue;
 		}
-		ptr_CSock = new CSockClient();
+		ptr_CSock = new CSockServer();
 		if ( ptr_CSock == NULL)
 			cerr << "FATAL ERROR" << endl;
 		ptr_CSock->sock_fd = client.sock_fd;
 		ptr_CSock->inet = client.inet;
 		ptr_CSock->protocol = client.protocol;
+		ptr_CSock->parent = this;
 		time(&now);
 		cout << "Got connection from " << inet_ntoa(client.inet.sin_addr) << " at " << ctime(&now); 
 
@@ -172,7 +301,7 @@ int CSockServer::InitServer() {
 			char *msg=NULL;
 			do {
 				x = client->RecvHeader(&a);
-				cout << "Recibido header: " << a << endl;
+					cout << "Recibido header: " << a << endl;
 				x = client->MiniRecv(&msg, a);
 				if (x == -1)
 					cout << "Error el recibir los datos" << endl;
@@ -183,7 +312,9 @@ int CSockServer::InitServer() {
 		}
 #endif
 #ifdef WITH_PTHREAD
+	#ifdef DEBUG
 		cout << "Creating thread" << endl;
+	#endif
 		if ( (pthread_create(&p_socket,NULL,HearthServer,ptr_CSock)) == -1 ) {
 			cerr << "ERROR: I can't create server process" << endl;
 			exit(1);
@@ -195,23 +326,75 @@ int CSockServer::InitServer() {
 }
 
 void * CSockServer::HearthServer(void *ps){
-	cout << "Thread hijo iniciado\n" << endl;
-	CSockClient *ptr_CSock = (CSockClient *)ps;
-	int a,x;
+	CSockServer *ptr_CSock = (CSockServer *)ps;
 	char *msg=NULL;
-//	do {
-		if ( ptr_CSock->RecvHeader(&a) == -1 )
-			cout << "CSockServer ERROR: RecvHeader" << endl;
-		else
-			cout << "Recibido head: " << a << endl;
-/*		if ( a == 0)
+	int y=0;
+	do {
+	y++;
+	cerr << "HEARTH:" <<y <<endl;
+		if ( ptr_CSock->Read(&msg) ) {
+			ptr_CSock->Send("900 FATAL ERROR");
 			break;
-		x = p_this->MiniRecv(p_this->client.sock_fd, &msg, a);
-		if (x == -1)
-			cout << "Error el recibir los datos" << endl;
-		cout << "Mensaje: " << msg << endl;
-//				close(client.sock_fd);
+		} else {
+			ptr_CSock->ProcessCommand(&msg);
+		}		
 	} while ( strcmp((const char*)msg,"END") != 0 );
-*/
+	if ( msg != NULL )
+		free(msg);
+	close(ptr_CSock->sock_fd);
+	if ( ptr_CSock != NULL )
+		delete(ptr_CSock);
 	pthread_exit(NULL);
+}
+
+int CSockServer::ProcessCommand(char **cmd) {
+	string	list,command;
+	int i_cam;
+	command = *cmd;
+ 	cout << "Procesando comando: " << command << endl;
+	if ( strcmp( (const char*)*cmd, "LIST") == 0 ) {
+		parent->ActiveJobsList.push_back(*cmd);		// Add the command to the array of current jobs
+		cout << " Tamaño de list: " << parent->ActiveJobsList.size() << endl;
+		CleanActiveCommandList(&list);
+		if ( Send((char *)list.c_str()) ){
+ 			return -1;
+		}
+		parent->ActiveJobsList.pop_back();
+	} else
+	if ( ( i_cam = command.rfind("DELETE CAM") ) == 0 ) {
+		sscanf(command.c_str(), "DELETE CAM %d",&i_cam);
+		cout << "Comando DELETE aceptado. BORRANDO CÁMARA: " << i_cam << endl;
+		if ( CheckActiveCommand(command) ) {
+			if ( Send("900 No es posible procesar el comando. Ya se está haciendo ese trabajo") )
+				return -1;
+		return 0;
+		}
+		parent->ActiveJobsList.push_back(*cmd);		// Add the command to the array the current jobs to satisfy LIST
+		parent->mmant->SetEraseAll(i_cam);
+		parent->mmant->DeleteFiles();
+		if ( Send("200 CMD DELETE ACCEPTED") )
+			return -1;
+		
+	}
+}
+
+int CSockServer::CheckActiveCommand(string cmd) {
+	cout << "Comparando: " << cmd << endl;
+	for (int a=0; a != parent->ActiveJobsList.size(); a++) {
+		if ( parent->ActiveJobsList[a] == cmd )
+			return 1;
+	}
+return 0;
+}
+
+int CSockServer::CleanActiveCommandList(string *list) {
+	vector<string> v_tmp;
+	for (int a=0; a != parent->ActiveJobsList.size();a++) {
+		if ( (parent->ActiveJobsList[a].find("DELETE CAM") != string::npos ) && parent->mmant->LOCK == false ) {
+		} else {
+		*list = *list + parent->ActiveJobsList[a] + "|";
+		v_tmp.push_back(parent->ActiveJobsList[a].c_str());
+		}
+	}
+	parent->ActiveJobsList = v_tmp;
 }

@@ -35,7 +35,10 @@ char *files[] = {
 o_sock.SetAddr(6969, "127.0.0.1");
 o_sock.InitSocket();
 o_sock.Connect();
-o_sock.Send("COMMAND TEST 1");
+o_sock.Send("LIST");
+char *cmd = NULL;
+o_sock.Read(&cmd);
+cout << "RESPUESTA: " << cmd << endl;
 if ( ( o_sock.Send("DELETE") ) != 0)
 	cout << "Error sending DELETE\n" << endl;
 o_sock.Send("END");
@@ -44,6 +47,7 @@ o_sock.Send("END");
 #ifndef CLIENT // Modo SERVIDOR
 o_sock.SetAddr(6969);
 o_sock.InitSocket();
+motion.OpenDB(HOST,USER,PASS,DATABASE);
 o_sock.AttachMmant(&motion);
 o_sock.InitServer();
 #endif
