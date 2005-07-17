@@ -24,7 +24,7 @@ public:
 	int SetQuery(string s, string f);   
 	// Signal Catcher
 	void DeleteStop(int);
-	void CheckDelete(int); 
+	string CheckDelete(int); 
     
 // Protected stuff
 protected:

@@ -77,8 +77,8 @@ private:
 	int SendHProtocolVersion();
 	int SendHMsgLen(char *msg);
 	int SendCommand(char *cmd);
-	int RecvHPRotocolVersion(int *protocol);
-	int RecvHLengthCommand(int *length);
+	int RecvHPRotocolVersion(long *protocol);
+	int RecvHLengthCommand(long *length);
 	int RecvHCommand(char **msg, int len);
 	int RecvLengthData(int *length);
 	int RecvData(char **msg, int len);

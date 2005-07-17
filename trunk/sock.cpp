@@ -89,23 +89,29 @@ int CSockClient::Send(char *msg) {
 	// We send the protocol version
 	i_send = SendHProtocolVersion();
 	if (i_send == -1) {
+#ifdef DEBUG
 		cerr << "CSockClient error: I cant't send protocol version!!" << endl;
+#endif
 		return -1;
 	}
 	// We send the length of command
 	if ( SendHMsgLen(msg) == -1 ) {
+#ifdef DEBUG
 		cerr << "CSockClient error: I can't send header" << endl;
+#endif
 		return -1;
 	}
 	// We send the message
 	if ( MiniSend(msg) == -1 ) {
+#ifdef DEBUG
 		cerr << "CSockClient error: I can't send command" << endl;
+#endif
 		return -1;
 	}
 	return 0;
 }
 
-int CSockClient::RecvHPRotocolVersion(int *protocol) {
+int CSockClient::RecvHPRotocolVersion(long *protocol) {
 	int stat;
 	struct pollfd my_pfds[1];
 	my_pfds[0].fd = sock_fd;
@@ -125,14 +131,22 @@ int CSockClient::RecvHPRotocolVersion(int *protocol) {
 	return -1;
 }
 
-int CSockClient::RecvHLengthCommand(int *length) {
+int CSockClient::RecvHLengthCommand(long *length) {
 	int stat;
-	stat = recv(sock_fd, length, sizeof(int), 0);
+	*length = 2;
+	struct pollfd my_pfds[1];
+	my_pfds[0].fd = sock_fd;
+	my_pfds[0].events = POLLIN;
+	if (poll(my_pfds, 1, TIMEOUT_RECV) == 1) {
+		stat = recv(sock_fd, length, sizeof(long), 0);
 #ifdef DEBUG
-	perror("recv");
+		cout << "Recibidos " << stat << " bytes" << endl;
+		perror("recv");
 #endif
 	*length = ntohs(*length);
-	return stat;
+	} else
+		return -1;
+	return stat == 0?-1:0;
 }
 
 int CSockClient::RecvHCommand(char **msg, int len) {
@@ -198,7 +212,8 @@ int CSockClient::MiniRecv(char **msg, int len) {
 
 
 int CSockClient::Read(char **cmd) {
-	int protocol,l_command;
+	long protocol;
+	long l_command;
 	if ( RecvHPRotocolVersion(&protocol) == -1 ) {
 #ifdef DEBUG
 		cout << "CSockServer ERROR: RecvProtocol" << endl;
@@ -214,11 +229,11 @@ int CSockClient::Read(char **cmd) {
 		cerr << "Packet discarded. Protocol not matching!!" << endl;
 //		RecvHPRotocolVersion(&protocol);	// Workaround for "sucksets" PHP
 #endif
-//		return -1;
+		return -1;
 	}
 	if ( (RecvHLengthCommand(&l_command) == -1) || l_command == 0) {
 #ifdef DEBUG
-		cerr << "CSockServer ERROR: RecvHLengthCommand" << endl;
+		cerr << "CSockServer ERROR: RecvHLengthCommand: " << l_command << endl;
 #endif
 		return -1;
 	}
@@ -328,10 +343,7 @@ int CSockServer::InitServer() {
 void * CSockServer::HearthServer(void *ps){
 	CSockServer *ptr_CSock = (CSockServer *)ps;
 	char *msg=NULL;
-	int y=0;
 	do {
-	y++;
-	cerr << "HEARTH:" <<y <<endl;
 		if ( ptr_CSock->Read(&msg) ) {
 			ptr_CSock->Send("900 FATAL ERROR");
 			break;
@@ -339,6 +351,7 @@ void * CSockServer::HearthServer(void *ps){
 			ptr_CSock->ProcessCommand(&msg);
 		}		
 	} while ( strcmp((const char*)msg,"END") != 0 );
+	ptr_CSock->Send("200 CLOSING CONNECTION");
 	if ( msg != NULL )
 		free(msg);
 	close(ptr_CSock->sock_fd);
@@ -354,7 +367,9 @@ int CSockServer::ProcessCommand(char **cmd) {
  	cout << "Procesando comando: " << command << endl;
 	if ( strcmp( (const char*)*cmd, "LIST") == 0 ) {
 		parent->ActiveJobsList.push_back(*cmd);		// Add the command to the array of current jobs
+#ifdef DEBUG
 		cout << " Tamaño de list: " << parent->ActiveJobsList.size() << endl;
+#endif
 		CleanActiveCommandList(&list);
 		if ( Send((char *)list.c_str()) ){
  			return -1;
@@ -363,7 +378,7 @@ int CSockServer::ProcessCommand(char **cmd) {
 	} else
 	if ( ( i_cam = command.rfind("DELETE CAM") ) == 0 ) {
 		sscanf(command.c_str(), "DELETE CAM %d",&i_cam);
-		cout << "Comando DELETE aceptado. BORRANDO CÁMARA: " << i_cam << endl;
+		cout << "200 OK.DELETE CAM: " << i_cam << endl;
 		if ( CheckActiveCommand(command) ) {
 			if ( Send("900 No es posible procesar el comando. Ya se está haciendo ese trabajo") )
 				return -1;
@@ -374,12 +389,24 @@ int CSockServer::ProcessCommand(char **cmd) {
 		parent->mmant->DeleteFiles();
 		if ( Send("200 CMD DELETE ACCEPTED") )
 			return -1;
-		
+	} else
+	if ( ( i_cam = command.rfind("STATUS") ) == 0 ) {
+		if (parent->mmant->LOCK == true ) {
+			string s_send = "200 ";
+			s_send += parent->mmant->CheckDelete(1);
+			if ( Send((char*)s_send.c_str()) )
+				return -1;
+		} else {
+			if ( Send("200 IDLE") )
+				return -1;
+		}
 	}
 }
 
 int CSockServer::CheckActiveCommand(string cmd) {
+#ifdef DEBUG
 	cout << "Comparando: " << cmd << endl;
+#endif
 	for (int a=0; a != parent->ActiveJobsList.size(); a++) {
 		if ( parent->ActiveJobsList[a] == cmd )
 			return 1;

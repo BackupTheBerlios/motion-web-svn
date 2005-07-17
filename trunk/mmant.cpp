@@ -115,7 +115,7 @@ void * Mmant::DFilesThread (void *aa) {
 		if ( zz->DeleteFilesHD() == -1 )
 			cerr << "Hubo un error al eliminar archivos del disco duro" << endl;	
 //		cout << "Eliminando DB" << endl;
-		if ( zz->DeleteFilesDB() == -1 )
+ 		if ( zz->DeleteFilesDB() == -1 )
 			cerr << "Hubo un error al eliminar archivos de la base de datos" << endl;	
 			zz->CheckDelete();
 			zz->tmp_files = zz->GetNumberFiles(zz->EraseAll);
@@ -159,10 +159,14 @@ void Mmant::DeleteStop(int s) {
 	DeleteDone = true;
 }
 
-void Mmant::CheckDelete(int s) {
+string Mmant::CheckDelete(int s) {
 	m_percent = (100-((float)tmp_files/(float)f_total)*100);
 	cout.precision(6);
-	cout << "Vamos por el " << m_percent << " y quedan " << tmp_files << endl;
+	string a = "Vamos por el ";
+	a += m_percent;
+	a +=" y quedan ";
+	a +=tmp_files;
+	return a;
 }
 // Elimina archivos del disco duro.
 int Mmant::DeleteFilesHD () {
