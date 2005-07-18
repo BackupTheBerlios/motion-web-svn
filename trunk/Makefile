@@ -1,7 +1,7 @@
 all: client servidor
 
 mantmot: mmant.cpp main.cpp sock.cpp
-	g++ -O3 -fomit-frame-pointer -march=pentium4 -mtune=pentium4 mmant.cpp main.cpp -o mmant -lmysqlcppapi-1.9 -pthread
+	g++ -DWITH_PTHREAD -O3 -fomit-frame-pointer -march=pentium4 -mtune=pentium4 sock.cpp mmant.cpp main.cpp -o mmant -lmysqlcppapi-1.9 -pthread
 	
 mantmot-debug: mmant.cpp main.cpp sock.cpp
 	g++ -g mmant.cpp main.cpp sock.cpp -o mmant -lmysqlcppapi-1.9 -pthread

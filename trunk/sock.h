@@ -43,7 +43,7 @@
 // LIST		<<<--- List current jobs
 
 #define Mmant_PROTOCOL_VERSION	0x0A
-#define TIMEOUT_RECV 10000
+#define TIMEOUT_RECV 35000
 
 using namespace std;
 class CSock {
