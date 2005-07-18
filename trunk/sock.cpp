@@ -390,6 +390,16 @@ int CSockServer::ProcessCommand(char **cmd) {
 		if ( Send("200 CMD DELETE ACCEPTED") )
 			return -1;
 	} else
+	if ( ( i_cam = command.rfind("STOP DELETE") ) == 0 ) {
+		cout << "200 OK STOP DELETE" << endl;
+		if ( parent->mmant->LOCK == false ) {
+			if ( Send("900 No se está borrando ninguna cámara") )
+				return 0;
+			return 0;
+		} else {
+			parent->mmant->DeleteStop(1);
+		}
+	}else
 	if ( ( i_cam = command.rfind("STATUS") ) == 0 ) {
 		if (parent->mmant->LOCK == true ) {
 			string s_send = "200 ";
