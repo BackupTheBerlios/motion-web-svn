@@ -166,6 +166,7 @@ string Mmant::CheckDelete(int s) {
 	cout.precision(6);
 	string a = "Vamos por el ";
 	sprintf(t1,"%l",m_percent);
+	printf ("T1: %s", t1);
 	a += t1;
 	a +=" y quedan ";
 	sprintf(t2,"%l", tmp_files);
