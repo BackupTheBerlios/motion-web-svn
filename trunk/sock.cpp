@@ -398,6 +398,8 @@ int CSockServer::ProcessCommand(char **cmd) {
 			return 0;
 		} else {
 			parent->mmant->DeleteStop(1);
+			if ( Send("200 CMD STOP DELETE ACCEPTED") )
+				return -1;
 		}
 	}else
 	if ( ( i_cam = command.rfind("STATUS") ) == 0 ) {
