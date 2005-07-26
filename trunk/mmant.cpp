@@ -160,17 +160,12 @@ void Mmant::DeleteStop(int s) {
 }
 
 string Mmant::CheckDelete(int s) {
-	char t1[20];
-	char t2[20];
+	char t1[50];
 	m_percent = (100-((float)tmp_files/(float)f_total)*100);
-	cout.precision(6);
-	string a = "Vamos por el ";
-	sprintf(t1,"%l",m_percent);
-	printf ("T1: %l", t1);
-	a += t1;
-	a +=" y quedan ";
-	sprintf(t2,"%l", tmp_files);
-	a += t2;
+//	cout.precision(6);
+	sprintf(t1,"Vamos por el %d y quedan %d archivos",(int)m_percent, (int)tmp_files);
+	printf ("T1: %s", t1);
+	string a = t1;
 	return a;
 }
 // Elimina archivos del disco duro.
