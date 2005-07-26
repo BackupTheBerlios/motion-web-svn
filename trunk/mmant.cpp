@@ -122,7 +122,7 @@ void * Mmant::DFilesThread (void *aa) {
 			
 //			cout << m_percent << "%" << " Ahora: " << tmp_files << endl;
 	} while ( zz->tmp_files != 0 && zz->DeleteDone == false);
-	zz->DeleteDone = true;
+	zz->DeleteDone = false;
 	zz->LOCK = false;
 	pthread_exit(NULL);
 }
@@ -163,7 +163,7 @@ string Mmant::CheckDelete(int s) {
 	char t1[50];
 	m_percent = (100-((float)tmp_files/(float)f_total)*100);
 //	cout.precision(6);
-	sprintf(t1,"Vamos por el %d y quedan %d archivos",(int)m_percent, (int)tmp_files);
+	sprintf(t1,"Vamos por el %d\% y quedan %d archivos",(int)m_percent, (int)tmp_files);
 	printf ("T1: %s", t1);
 	string a = t1;
 	return a;
