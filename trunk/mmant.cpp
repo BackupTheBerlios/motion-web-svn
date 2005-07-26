@@ -142,7 +142,7 @@ int Mmant::DeleteFiles() {
 			return -1;
 		}
 		
-		pthread_join(idThread, NULL);
+//		pthread_join(idThread, NULL);
 //		sleep(1);
 //		while ( DeleteDone == false ) {
 //		}
