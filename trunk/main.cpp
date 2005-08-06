@@ -37,13 +37,13 @@ o_sock.InitSocket();
 o_sock.Connect();
 //o_sock.Send("SEND IMG  /var/www/html/cam1/13-20050318183215-14.jpg");
 //o_sock.Send("SEND IMG /home/jluis/vlc-log.txt");
-o_sock.Send("STATUS");
+o_sock.Send("NO");
 char *cmd = NULL;
 o_sock.Read(&cmd);
 cout << "RESPUESTA: " << cmd << endl;
 //if ( ( o_sock.Send("DELETE") ) != 0)
 //	cout << "Error sending DELETE\n" << endl;
-o_sock.Send("END");
+//o_sock.Send("END");
 #endif
 
 #ifndef CLIENT // Modo SERVIDOR

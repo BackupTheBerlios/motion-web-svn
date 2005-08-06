@@ -315,8 +315,7 @@ int CSockServer::InitServer() {
 		ptr_CSock->protocol = client.protocol;
 		ptr_CSock->parent = this;
 		time(&now);
-		cout << "Got connection from " << inet_ntoa(client.inet.sin_addr) << " at " << ctime(&now); 
-
+		cout << "Got connection from " << inet_ntoa(client.inet.sin_addr) << " at " << ctime(&now);
 // DEPRECATED
 #ifdef WITH_FORK	
 		if (!fork()) { //Proceso hijo
@@ -354,16 +353,18 @@ void * CSockServer::HearthServer(void *ps){
 	CSockServer *ptr_CSock = (CSockServer *)ps;
 	int p_len;
 	char *msg=NULL;
-	char *msg_prev=NULL;
 	do {
-		if (msg != NULL)
+		if (msg != NULL) {
 			free(msg);
+			msg = NULL;
+		}
 		p_len = ptr_CSock->Read(&msg);
 		if (  p_len == -1 ) {
 			ptr_CSock->Send("900 FATAL ERROR");
 			break;
 		} else {
-			ptr_CSock->ProcessCommand(&msg, p_len);
+			if ( (ptr_CSock->ProcessCommand(&msg, p_len) ) == -1 )
+				break;
 		}
 	} while ( strcmp((const char*)msg,"END") != 0 );
 	ptr_CSock->Send("200 CLOSING CONNECTION");
@@ -371,7 +372,7 @@ void * CSockServer::HearthServer(void *ps){
 		free(msg);
 	close(ptr_CSock->sock_fd);
 	if ( ptr_CSock != NULL )
-		delete(ptr_CSock);
+		delete ptr_CSock;
 	cout << "Cerrando conexion y thread" << endl;
 	pthread_exit(NULL);
 }
@@ -479,6 +480,8 @@ int CSockServer::ProcessCommand(char **cmd, int p_len) {
 		fclose(img_fd);
 		return 0;
 	}
+	else
+		return -1;
 }
 
 int CSockServer::CheckActiveCommand(string cmd) {
