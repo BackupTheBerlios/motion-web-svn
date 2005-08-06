@@ -137,6 +137,7 @@ int Mmant::DeleteFiles() {
 			exit(-1);
 		}
 		tmp_files = 0;		//Fix for thread;
+		f_total = 0;
 		err = pthread_create (&idThread, NULL, DFilesThread, ptr); 
 		if ( err != 0 ) {
 			cerr << "I can't create thread" << endl;
@@ -162,7 +163,10 @@ void Mmant::DeleteStop(int s) {
 
 string Mmant::CheckDelete(int s) {
 	char t1[50];
-	m_percent = (100-((float)tmp_files/(float)f_total)*100);
+	if ( tmp_files == 0 && f_total == 0 )
+		m_percent = 0;
+	else
+		m_percent = (100-((float)tmp_files/(float)f_total)*100);
 //	cout.precision(6);
 	sprintf(t1,"Vamos por el %d\% y quedan %d archivos",(int)m_percent, (int)tmp_files);
 	printf ("T1: %s", t1);

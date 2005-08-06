@@ -360,6 +360,7 @@ void * CSockServer::HearthServer(void *ps){
 		}
 		p_len = ptr_CSock->Read(&msg);
 		if (  p_len == -1 ) {
+			cout << "900 FATAL ERROR READ COMMAND" << endl;
 			ptr_CSock->Send("900 FATAL ERROR");
 			break;
 		} else {
@@ -439,6 +440,7 @@ int CSockServer::ProcessCommand(char **cmd, int p_len) {
 		cout << "200 OK. SENDING IMG: " << name_image_file << endl;
 		img_fd = fopen ( name_image_file, "rb");
 		if ( img_fd == NULL ) {
+			cout << "ERROR OPENING FILE" << endl;
 			Send("900 ERROR OPENING FILE");
 			free(name_image_file);
 			return -1;
@@ -462,9 +464,10 @@ int CSockServer::ProcessCommand(char **cmd, int p_len) {
 			cout << "Leído: " << a << endl;
 //		}
 //		while (a == s_img_file.st_size);
-		cout << "szie buff: " << strlen((const char*)buff) << endl;
+
 //		cout << "BUFF: " << buff << endl;
 		if ( !feof(img_fd) ) {
+			cout << "ERROR READING FILE" << endl;
 			Send("900 ERROR READING FILE");
 			fclose(img_fd);
 			free(name_image_file);
@@ -497,7 +500,7 @@ return 0;
 
 int CSockServer::CleanActiveCommandList(string *list) {
 	vector<string> v_tmp;
-	for (int a=0; a != parent->ActiveJobsList.size();a++) {
+ 	for (unsigned int a=0; a != parent->ActiveJobsList.size();a++) {
 		if ( (parent->ActiveJobsList[a].find("DELETE CAM") != string::npos ) && parent->mmant->LOCK == false ) {
 		} else {
 		*list = *list + parent->ActiveJobsList[a] + "|";
