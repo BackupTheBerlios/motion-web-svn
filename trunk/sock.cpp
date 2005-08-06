@@ -43,25 +43,34 @@ int CSockClient::Connect() {
 	} 
 }
 
-int CSockClient::SendHMsgLen(char *msg) {
-	int n,len;
-	len = strlen(msg);
-	len = htons (len);
-	n = send(sock_fd, &len, sizeof(int), 0);
+int CSockClient::SendHMsgLen(char *msg, unsigned long len) {
+	int n;
+	if (!len)	// If len=0 is a binary data and length is passthru
+		len = strlen(msg);
 #ifdef DEBUG
-	cout << "Sending Header: MSG LEN: " << strlen(msg) << endl;
+	cout << "Sending Header: MSG LEN: " << len << endl;
+#endif
+	len = htonl (len);
+	n = send(sock_fd, &len, sizeof(unsigned long), 0);
+#ifdef DEBUG
 	perror("send");
 #endif
 	return n == -1?-1:0;	
 }
 
-int CSockClient::MiniSend(char *msg) {
+int CSockClient::MiniSend(char *msg, unsigned long len) {
 	
 	int total = 0;
-	int bytesleft = strlen(msg);
+	int bytesleft;
+	if (!len) {
+		bytesleft = strlen(msg);
+		len = bytesleft;
+	}
+	else
+		bytesleft = len;
 	int n;
 	
-	while (total < strlen(msg) ) {
+	while (total < len ) {
 		n = send(sock_fd, msg+total, bytesleft, 0);
 		if (n == -1) { break; }
 		total += n;
@@ -84,7 +93,7 @@ int CSockClient::SendHProtocolVersion() {
 }
 
 
-int CSockClient::Send(char *msg) {
+int CSockClient::Send(char *msg, unsigned long len) {
 	int i_send;
 	// We send the protocol version
 	i_send = SendHProtocolVersion();
@@ -95,14 +104,14 @@ int CSockClient::Send(char *msg) {
 		return -1;
 	}
 	// We send the length of command
-	if ( SendHMsgLen(msg) == -1 ) {
+	if ( SendHMsgLen(msg, len) == -1 ) {
 #ifdef DEBUG
 		cerr << "CSockClient error: I can't send header" << endl;
 #endif
 		return -1;
 	}
 	// We send the message
-	if ( MiniSend(msg) == -1 ) {
+	if ( MiniSend(msg, len) == -1 ) {
 #ifdef DEBUG
 		cerr << "CSockClient error: I can't send command" << endl;
 #endif
@@ -131,19 +140,19 @@ int CSockClient::RecvHPRotocolVersion(long *protocol) {
 	return -1;
 }
 
-int CSockClient::RecvHLengthCommand(long *length) {
+int CSockClient::RecvHLengthCommand(unsigned long *length) {
 	int stat;
 	*length = 2;
 	struct pollfd my_pfds[1];
 	my_pfds[0].fd = sock_fd;
 	my_pfds[0].events = POLLIN;
 	if (poll(my_pfds, 1, TIMEOUT_RECV) == 1) {
-		stat = recv(sock_fd, length, sizeof(long), 0);
+		stat = recv(sock_fd, length, sizeof(unsigned long), 0);
 #ifdef DEBUG
 		cout << "Recibidos " << stat << " bytes" << endl;
 		perror("recv");
 #endif
-	*length = ntohs(*length);
+	*length = ntohl(*length);
 	} else
 		return -1;
 	return stat == 0?-1:0;
@@ -213,7 +222,7 @@ int CSockClient::MiniRecv(char **msg, int len) {
 
 int CSockClient::Read(char **cmd) {
 	long protocol;
-	long l_command;
+	unsigned long l_command;
 	if ( RecvHPRotocolVersion(&protocol) == -1 ) {
 #ifdef DEBUG
 		cout << "CSockServer ERROR: RecvProtocol" << endl;
@@ -248,10 +257,11 @@ int CSockClient::Read(char **cmd) {
 		return -1;
 	}
 #ifdef DEBUG
-	else
+	else {
 		cout << "Recibido comando: " << *cmd << endl;
+	}
 #endif
-return 0;
+return l_command;
 
 }
 
@@ -342,14 +352,19 @@ int CSockServer::InitServer() {
 
 void * CSockServer::HearthServer(void *ps){
 	CSockServer *ptr_CSock = (CSockServer *)ps;
+	int p_len;
 	char *msg=NULL;
+	char *msg_prev=NULL;
 	do {
-		if ( ptr_CSock->Read(&msg) ) {
+		if (msg != NULL)
+			free(msg);
+		p_len = ptr_CSock->Read(&msg);
+		if (  p_len == -1 ) {
 			ptr_CSock->Send("900 FATAL ERROR");
 			break;
 		} else {
-			ptr_CSock->ProcessCommand(&msg);
-		}		
+			ptr_CSock->ProcessCommand(&msg, p_len);
+		}
 	} while ( strcmp((const char*)msg,"END") != 0 );
 	ptr_CSock->Send("200 CLOSING CONNECTION");
 	if ( msg != NULL )
@@ -357,12 +372,16 @@ void * CSockServer::HearthServer(void *ps){
 	close(ptr_CSock->sock_fd);
 	if ( ptr_CSock != NULL )
 		delete(ptr_CSock);
+	cout << "Cerrando conexion y thread" << endl;
 	pthread_exit(NULL);
 }
 
-int CSockServer::ProcessCommand(char **cmd) {
+int CSockServer::ProcessCommand(char **cmd, int p_len) {
 	string	list,command;
+	char *name_image_file;
+	unsigned char *buff,*btmp;
 	int i_cam;
+	FILE *img_fd;
 	command = *cmd;
  	cout << "Procesando comando: " << command << endl;
 	if ( strcmp( (const char*)*cmd, "LIST") == 0 ) {
@@ -412,6 +431,53 @@ int CSockServer::ProcessCommand(char **cmd) {
 			if ( Send("200 IDLE") )
 				return -1;
 		}
+	} else
+	if ( ( i_cam = command.rfind("SEND IMG") ) == 0 ) {
+		name_image_file = (char *)malloc((p_len-8)*sizeof(char));
+		sscanf(command.c_str(), "SEND IMG %s", name_image_file);
+		cout << "200 OK. SENDING IMG: " << name_image_file << endl;
+		img_fd = fopen ( name_image_file, "rb");
+		if ( img_fd == NULL ) {
+			Send("900 ERROR OPENING FILE");
+			free(name_image_file);
+			return -1;
+		}
+		struct stat s_img_file;
+		stat(name_image_file,&s_img_file);
+		cout << "Tamaño del archivo: " << s_img_file.st_size << endl;
+		unsigned int a;
+		buff = (unsigned char *)malloc(s_img_file.st_size+1);
+		btmp = (unsigned char *)malloc(s_img_file.st_size+1);
+		if ( btmp == NULL || buff == NULL) {
+			Send("900 ERROR ALLOCATING MEMORY");
+			free(name_image_file);
+			fclose(img_fd);
+			return -1;
+		}
+//		do {
+			a = fread(buff, 1, s_img_file.st_size+1, img_fd);
+//			if ( a )
+//				buff=(unsigned char *)memcpy(buff+(buff),btmp,a);
+			cout << "Leído: " << a << endl;
+//		}
+//		while (a == s_img_file.st_size);
+		cout << "szie buff: " << strlen((const char*)buff) << endl;
+//		cout << "BUFF: " << buff << endl;
+		if ( !feof(img_fd) ) {
+			Send("900 ERROR READING FILE");
+			fclose(img_fd);
+			free(name_image_file);
+			free(buff);
+			free(btmp);
+			return -1;
+		}
+		if ( Send((char *)buff,s_img_file.st_size) )
+			return -1;
+		free(name_image_file);
+		free(buff);
+		free(btmp);
+		fclose(img_fd);
+		return 0;
 	}
 }
 

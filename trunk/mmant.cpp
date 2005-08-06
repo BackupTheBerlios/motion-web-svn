@@ -136,6 +136,7 @@ int Mmant::DeleteFiles() {
 			cout << "ERROR" << endl;
 			exit(-1);
 		}
+		tmp_files = 0;		//Fix for thread;
 		err = pthread_create (&idThread, NULL, DFilesThread, ptr); 
 		if ( err != 0 ) {
 			cerr << "I can't create thread" << endl;

@@ -35,12 +35,14 @@ char *files[] = {
 o_sock.SetAddr(6969, "127.0.0.1");
 o_sock.InitSocket();
 o_sock.Connect();
-o_sock.Send("LIST");
+//o_sock.Send("SEND IMG  /var/www/html/cam1/13-20050318183215-14.jpg");
+//o_sock.Send("SEND IMG /home/jluis/vlc-log.txt");
+o_sock.Send("STATUS");
 char *cmd = NULL;
 o_sock.Read(&cmd);
 cout << "RESPUESTA: " << cmd << endl;
-if ( ( o_sock.Send("DELETE") ) != 0)
-	cout << "Error sending DELETE\n" << endl;
+//if ( ( o_sock.Send("DELETE") ) != 0)
+//	cout << "Error sending DELETE\n" << endl;
 o_sock.Send("END");
 #endif
 

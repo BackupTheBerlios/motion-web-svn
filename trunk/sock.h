@@ -71,20 +71,20 @@ class CSockClient:public CSock {
 public:
 	int Connect();
 	int Recv(char *msg);
-	int Send(char *msg);
+	int Send(char *msg, unsigned long len = 0);
 	int Read(char **cmd);
 private:
 	int SendHProtocolVersion();
-	int SendHMsgLen(char *msg);
+	int SendHMsgLen(char *msg, unsigned long len = 0);
 	int SendCommand(char *cmd);
 	int RecvHPRotocolVersion(long *protocol);
-	int RecvHLengthCommand(long *length);
+	int RecvHLengthCommand(unsigned long *length);
 	int RecvHCommand(char **msg, int len);
 	int RecvLengthData(int *length);
 	int RecvData(char **msg, int len);
 	int RecvHeader(int *i);
 	int MiniRecv(char **msg, int len);	
-	int MiniSend(char *msg);
+	int MiniSend(char *msg, unsigned long len = 0);
 
 	
 };
@@ -101,7 +101,7 @@ public:
 	// Después se podrían consultar, eliminar, etc.
 	Mmant *mmant;
 	int AttachMmant(Mmant *z);
-	int ProcessCommand(char **cmd);	
+	int ProcessCommand(char **cmd, int p_len);	
 
 private:
 	CSockServer* parent;	//Pointer to CsockServer base

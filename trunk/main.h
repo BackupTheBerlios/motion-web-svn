@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <string>
+#include <sys/stat.h>
 #include "sock.h"
 #include "mmant.h"
 
