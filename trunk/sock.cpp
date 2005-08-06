@@ -60,7 +60,7 @@ int CSockClient::SendHMsgLen(char *msg, unsigned long len) {
 
 int CSockClient::MiniSend(char *msg, unsigned long len) {
 	
-	int total = 0;
+	unsigned int total = 0;
 	int bytesleft;
 	if (!len) {
 		bytesleft = strlen(msg);
@@ -488,7 +488,7 @@ int CSockServer::CheckActiveCommand(string cmd) {
 #ifdef DEBUG
 	cout << "Comparando: " << cmd << endl;
 #endif
-	for (int a=0; a != parent->ActiveJobsList.size(); a++) {
+	for (unsigned int a=0; a != parent->ActiveJobsList.size(); a++) {
 		if ( parent->ActiveJobsList[a] == cmd )
 			return 1;
 	}
