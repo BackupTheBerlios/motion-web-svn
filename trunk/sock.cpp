@@ -380,7 +380,7 @@ void * CSockServer::HearthServer(void *ps){
 
 int CSockServer::ProcessCommand(char **cmd, int p_len) {
 	string	list,command;
-	char *name_image_file;
+	char *name_image_file, tmp[1000];
 	unsigned char *buff,*btmp;
 	int i_cam;
 	FILE *img_fd;
@@ -482,6 +482,18 @@ int CSockServer::ProcessCommand(char **cmd, int p_len) {
 		free(btmp);
 		fclose(img_fd);
 		return 0;
+	} else
+	if (( i_cam = command.rfind("FILESIZE") ) == 0){
+		name_image_file = (char *)malloc((p_len-8)*sizeof(char));
+		sscanf(command.c_str(), "FILESIZE %s", name_image_file);
+		cout << "200 OK. SENDING FILESIZE OF: " << name_image_file << endl;
+		struct stat s_img_file;
+		stat(name_image_file,&s_img_file);
+		cout << "Tamaño del archivo: " << s_img_file.st_size << endl;
+// TODO: Check if we send size as LONG or leave without changes.
+		sprintf(tmp,"%d",s_img_file.st_size);
+		if ( Send(tmp) )
+			return -1;
 	}
 	else
 		return -1;

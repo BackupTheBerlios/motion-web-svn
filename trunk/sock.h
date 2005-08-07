@@ -41,6 +41,7 @@
 // FREESPACE	<<<--- Space free of directory.
 // directory
 // LIST		<<<--- List current jobs
+// FILESIZE	<<<--- Returns file size.
 
 #define Mmant_PROTOCOL_VERSION	0x0A
 #define TIMEOUT_RECV 35000
