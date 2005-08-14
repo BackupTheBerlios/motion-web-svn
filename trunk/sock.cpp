@@ -299,6 +299,7 @@ int CSockServer::InitServer() {
 	Bind();
 	Listen();
 	pthread_t p_socket;
+	pthread_attr_t tattr;
 	CSockServer *ptr_CSock;
 
 	while (1) {
@@ -339,7 +340,9 @@ int CSockServer::InitServer() {
 	#ifdef DEBUG
 		cout << "Creating thread" << endl;
 	#endif
-		if ( (pthread_create(&p_socket,NULL,HearthServer,ptr_CSock)) != 0 ) {
+		pthread_attr_init(&tattr);
+		pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
+		if ( (pthread_create(&p_socket,&tattr,HearthServer,ptr_CSock)) != 0 ) {
 			cerr << "ERROR: I can't create server process" << endl;
 			perror("pthread_create");
 			exit(1);
