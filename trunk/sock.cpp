@@ -339,8 +339,9 @@ int CSockServer::InitServer() {
 	#ifdef DEBUG
 		cout << "Creating thread" << endl;
 	#endif
-		if ( (pthread_create(&p_socket,NULL,HearthServer,ptr_CSock)) == -1 ) {
+		if ( (pthread_create(&p_socket,NULL,HearthServer,ptr_CSock)) != 0 ) {
 			cerr << "ERROR: I can't create server process" << endl;
+			perror("pthread_create");
 			exit(1);
 		}
 #endif
